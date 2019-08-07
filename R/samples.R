@@ -12,7 +12,7 @@
 #' @export
 sim.sample.hole_in_flow_cell <- function(out.flow_rate = NULL,
                                          out.fluorescence = NULL) {
-  flow_rate <- sim.baseline(N = 3000, mu = 150, sigma = 3, distort = "sin", distort_par = c(5, 500)) %>%
+  flow_rate <- sim.baseline(N = 3000, mu = 150, sigma = 3, distort = "sin", distort_par = c(10, 500)) %>%
     sim.prune(i = 19, N = 20) %>%
     sim.round()
 
@@ -54,7 +54,7 @@ sim.sample.linear_increase_in_signal <- function(out.flow_rate = NULL,
     sim.round()
 
   fluo1 <- sim.baseline(flow_rate_baseline = flow_rate, mu = 4000, sigma = 200, distort = "slope", distort_par = c(.2))
-  fluo2 <- sim.baseline(flow_rate_baseline = flow_rate, mu = 0, sigma = 500, distort = "slope", distort_par = c(.2))
+  fluo2 <- sim.baseline(flow_rate_baseline = flow_rate, mu = 0, sigma = 50, distort = "slope", distort_par = c(.2))
   fluo <- sim.concatenate(fluo1, fluo2)
 
   ff <- sim.make_flowFrame(fluo, fluo,

@@ -7,7 +7,7 @@ Maintainer: David Novak <davidnovakcz@hotmail.com>
 Description: Toolset for creating synthetic FCS files for evaluating quality control 
     algorithms in flow cytometry.
 License: open
-Depends: tidyverse, R.utils, flowCore
+Depends: R (>= 3.0.0), tidyverse, R.utils, flowCore
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.1.1

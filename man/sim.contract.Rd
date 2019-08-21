@@ -24,7 +24,7 @@ sim.contract(baseline, i = 1, j = NULL, N = 2, reindex = FALSE,
 Modified \code{baseline} input.
 }
 \description{
-Contracts signal data. Given a baseline signal, this function separates signal values into segments of size \code{N}, with respect to time. Then, from each segment, \code{i} values (1..N) are removed at random
+Contracts signal data. Given a baseline signal, this function separates signal values into segments of size \code{N}, with respect to time. Then, from each segment, \code{i} values from (1..N) are removed at random
 (unless \code{j} is not \code{NULL}, in which case always remove the \code{j}-th values in the given segment and disregard \code{i}).
 }
 \seealso{

@@ -1,0 +1,114 @@
+---
+title: "qctoy: synthetic flow data for QC algorithms"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{qctoy: synthetic flow data for QC algorithms}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(qctoy)
+```
+
+*qctoy* is a simple tool for testing quality control (QC) algorithms for flow data. It allows generating synthetic flow rate and fluorescence data; these can be exported as .fcs files, compatible with widely-used cytometry software, such as *FlowJo*, as well as packages for QC. The currently available QC packages (*eg.* ``flowAI``, ``flowCut``, ``flowClean``) employ various criteria for optimisation. Therefore, they perform differently when applied to various types of anomalies in flow rate or fluorescence signal stability. Performance on diverse sets of data and with varying input parameters is of interest. *qctoy* allows for the creation of standard data to use for benchmarking quality control algorithms.
+
+# Samples of anomalies
+
+*qctoy* includes functions for generating sample synthetic data, which we showcase here. These are meant for demonstration purposes and the scale of the data produced is arbitrary. They serve merely to demonstrate the usage of *qctoy*.
+
+## Viewing samples
+
+The following section includes code snippets for displaying sample anomalies, included in the *qctoy* package.
+
+### Linear increase in signal
+
+``sim.sample.linear_increase_in_signal`` simulates an increase in detected fluorescence over time. To view the flow rate and fluorescence signal plots, we use the function's out-parameters to produce data which can be plotted using ``sim.plot``. The function itself returns a ``flowFrame``.
+
+```{r echo = TRUE, include = TRUE}
+fr <- 0 # flow rate
+fl <- 0 # fluorescence
+ff <- sim.sample.linear_increase_in_signal(out.flow_rate = fr, out.fluorescence = fl)
+sim.plot(fr); sim.plot(fl, title = "Fluorescence", y.lab = "fluorescence")
+```
+
+(A warning might be produced by ``ggplot2`` due to the data being interspersed in a non-uniform way.)
+
+Crucially, the distribution of the fluorescence signal is congruent with the flow rate.
+
+Here, relatively stable flow rate values, sampled from a Gaussian distribution, are generated, then applied to create fluorescence data. These data are then perturbed to increase linearly over time.
+
+### Measuring air
+
+``sim.sample.measuring_air`` seeks to simulate an aberrance in fluidics, whereby the flow cytometer is effectively measuring air, with no droplets passing through the flow cell.
+
+```{r echo = TRUE, include = TRUE}
+fr <- 0 # flow rate
+fl <- 0 # fluorescence
+ff <- sim.sample.measuring_air(out.flow_rate = fr, out.fluorescence = fl)
+sim.plot(fr); sim.plot(fl, title = "Fluorescence", y.lab = "fluorescence")
+```
+
+In this case, multiple perturbations were applied to the data. A part of the flow rate curve is sampled from an exponential curve. The variance of flow rate values, sampled from a Gaussian distribution increases past this exponential growth. Fluorescence values see a sharp decline at the corresponding time point.
+
+### Permanent rate change
+
+``sim.sample.permanent_rate_change`` simulates a change in flow rate during the course of measurement.
+
+```{r echo = TRUE, include = TRUE}
+fr <- 0 # flow rate
+fl <- 0 # fluorescence
+ff <- sim.sample.permanent_rate_change(out.flow_rate = fr, out.fluorescence = fl)
+sim.plot(fr); sim.plot(fl, title = "Fluorescence", y.lab = "fluorescence")
+```
+
+Here, flow rate changes at some point, the curve resembling a sigmoid. This is accompanied by a smooth decrease in fluorescence signal and subsequent return to prior level of fluorescence. This perturbation (a 'smooth push') is implemented by sampling points from a Gaussian distribution. To achieve a skewed shape, one can use chi-squared distribution instead, manipulating the non-centrality parameter and the degrees of freedom to get the desired result.
+
+### Hole in flow cell
+
+``sim.sample.hole_in_flow_cell`` seeks to approximate roughly the situation where the integrity of the instrument's flow cell is compomised.
+
+```{r echo = TRUE, include = TRUE}
+fr <- 0 # flow rate
+fl <- 0 # fluorescence
+ff <- sim.sample.hole_in_flow_cell(out.flow_rate = fr, out.fluorescence = fl)
+sim.plot(fr); sim.plot(fl, title = "Fluorescence", y.lab = "fluorescence")
+```
+
+The flow rate here is distorted, using points sampled from a sine wave.
+
+## Understanding the generation of anomalies
+
+To give an introductory look at how the above samples were generated, let us inspect the function ``sim.sample.measuring_air``. The flow rate data are produced in the following way.
+
+```{r}
+flow_rate <- sim.baseline(N = 3000, mu = 150, sigma = 3) %>% 
+             sim.exponential(range = 1500:2000, strength = 4) %>% 
+             sim.sharp_flex(range = 2000:3000, strength = 4) %>%
+             sim.prune(i = 19, N = 20) %>%
+             sim.round()
+```
+
+First, a baseline (3000 data points sampled from a Gaussian spread over time points) is created, where mean of the distribution is set at 150 and standard deviation at 3. Then, an exponential rise is simulated over the time range 1500 to 2000, with a strength of 4 (meaning at the top of the exponential, the value can reach the maximum of 4 times the baseline). Subsequently, a sharp flex (increase of variance) is applied to time range 2000 to 3000, increasing variance 4-fold. The data is then pruned, removing 19 out of every 20 data points randomly, and values are rounded (since we are concerned with cell counts, after all).
+
+```{r}
+fluo1 <- sim.baseline(flow_rate_baseline = flow_rate, mu = 4000, sigma = 200) %>%
+         sim.sharp_push(range = c(2000, Inf), strength = -3000)
+```
+
+A fluorescence signal baseline is then produced, based on the existing flow rate data. Here, mean of the distribution from which the data is sampled is set at 4000, standard deviation at 200. A sharp push, *i.e.* decrease, is then applied to the time range spanning from time point 2000 all the way to the end.
+
+```{r}
+fluo2 <- sim.baseline(flow_rate_baseline = flow_rate, mu = 0, sigma = 50) %>%
+         sim.sharp_push(range = c(2000, Inf), strength = -2000)
+```
+
+Another fluorescence signal is produced, much like the previous once, but with some differences in parameters.
+
+```{r}
+fluo <- sim.concatenate(fluo1, fluo2)
+```
+
+The two fluorescence signal (from a positive and a negative population) are concatenated. Furthermore, signal for other channels (not just one) can be created, granting absolute freedom to the user with respect to generating potentially complex synthetic FCS files with signal in many different channels.
+
